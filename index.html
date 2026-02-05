@@ -1,0 +1,616 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clan Dashboard</title>
+    <style>
+        :root {
+            --bg-dark: #121212;
+            --bg-card: #1e1e1e;
+            --bg-table-header: #2c2c2c;
+            --bg-table-row: #252525;
+            --accent-gold: #F4C430; /* "Clash" Gold */
+            --text-main: #e0e0e0;
+            --text-muted: #a0a0a0;
+            --border-color: #333;
+            --shadow: 0 4px 6px rgba(0, 0, 0, 0.3);
+            --danger: #e74c3c;
+            --success: #2ecc71;
+        }
+
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+            background-color: var(--bg-dark);
+            color: var(--text-main);
+            line-height: 1.6;
+            padding-bottom: 40px;
+        }
+
+        /* --- Layout --- */
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        /* --- Loading State --- */
+        #loading {
+            text-align: center;
+            padding: 50px;
+            font-size: 1.2rem;
+            color: var(--accent-gold);
+        }
+
+        /* --- Header Section --- */
+        .clan-header {
+            background: var(--bg-card);
+            border-bottom: 3px solid var(--accent-gold);
+            border-radius: 8px;
+            padding: 2rem;
+            display: flex;
+            align-items: center;
+            gap: 2rem;
+            margin-bottom: 2rem;
+            box-shadow: var(--shadow);
+            flex-wrap: wrap;
+        }
+
+        .clan-badge-wrapper {
+            flex-shrink: 0;
+        }
+
+        .clan-badge {
+            width: 120px;
+            height: 120px;
+            object-fit: contain;
+            filter: drop-shadow(0 0 10px rgba(244, 196, 48, 0.2));
+        }
+
+        .clan-info h1 {
+            font-size: 2.5rem;
+            color: #fff;
+            margin-bottom: 0.5rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .clan-level {
+            display: inline-block;
+            background-color: var(--accent-gold);
+            color: #000;
+            font-weight: bold;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.9rem;
+            vertical-align: middle;
+            margin-left: 10px;
+        }
+
+        .clan-desc {
+            color: var(--text-muted);
+            max-width: 600px;
+        }
+
+        /* --- Stats Grid --- */
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 1.5rem;
+            margin-bottom: 2rem;
+        }
+
+        .stat-card {
+            background: var(--bg-card);
+            padding: 1.5rem;
+            border-radius: 8px;
+            text-align: center;
+            border: 1px solid var(--border-color);
+            box-shadow: var(--shadow);
+            transition: transform 0.2s;
+        }
+
+        .stat-card:hover {
+            transform: translateY(-2px);
+            border-color: var(--accent-gold);
+        }
+
+        .stat-value {
+            display: block;
+            font-size: 2rem;
+            font-weight: bold;
+            color: var(--accent-gold);
+        }
+
+        .stat-label {
+            color: var(--text-muted);
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        /* --- Tabs --- */
+        .tabs {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 1rem;
+            overflow-x: auto;
+            padding-bottom: 5px;
+        }
+
+        .tab-btn {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            color: var(--text-muted);
+            padding: 10px 20px;
+            cursor: pointer;
+            font-size: 1rem;
+            border-radius: 4px;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .tab-btn:hover {
+            background: #2a2a2a;
+            color: #fff;
+        }
+
+        .tab-btn.active {
+            background: var(--accent-gold);
+            color: #000;
+            border-color: var(--accent-gold);
+            font-weight: bold;
+        }
+
+        .tab-content {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* --- Tables --- */
+        .section-container {
+            background: var(--bg-card);
+            border-radius: 8px;
+            overflow: hidden; /* For border radius on table */
+            box-shadow: var(--shadow);
+        }
+
+        .section-header {
+            padding: 1.5rem;
+            background: var(--bg-table-header);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .section-header h2 {
+            color: var(--accent-gold);
+            margin: 0;
+            font-size: 1.5rem;
+        }
+
+        .table-container {
+            overflow-x: auto; /* Horizontal scroll for mobile */
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            min-width: 600px; /* Ensure table doesn't squish too much */
+        }
+
+        th {
+            background-color: #1a1a1a;
+            color: var(--text-muted);
+            font-weight: 600;
+            text-transform: uppercase;
+            font-size: 0.85rem;
+            padding: 1rem;
+            text-align: left;
+        }
+
+        td {
+            padding: 1rem;
+            border-bottom: 1px solid var(--border-color);
+            color: var(--text-main);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover {
+            background-color: #2a2a2a;
+        }
+
+        /* Role & Status Badges */
+        .badge {
+            font-size: 0.75rem;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-weight: bold;
+            text-transform: capitalize;
+            display: inline-block;
+            margin-right: 5px;
+        }
+
+        .role-leader { background: rgba(255, 215, 0, 0.15); color: #ffd700; border: 1px solid #ffd700; }
+        .role-coLeader { background: rgba(192, 192, 192, 0.15); color: #c0c0c0; border: 1px solid #c0c0c0; }
+        .role-admin { background: rgba(205, 127, 50, 0.15); color: #cd7f32; border: 1px solid #cd7f32; } /* Elder */
+        .role-member { background: rgba(255, 255, 255, 0.05); color: #aaa; border: 1px solid #555; }
+
+        .status-current { background: rgba(46, 204, 113, 0.15); color: #2ecc71; border: 1px solid #2ecc71; }
+        .status-past { background: rgba(231, 76, 60, 0.15); color: #e74c3c; border: 1px solid #e74c3c; }
+
+        .rank-cell {
+            font-weight: bold;
+            color: var(--text-muted);
+            width: 60px;
+        }
+        
+        .stars-val {
+            color: var(--accent-gold);
+            font-weight: bold;
+        }
+
+        /* --- Responsive Tweaks --- */
+        @media (max-width: 768px) {
+            .clan-header {
+                flex-direction: column;
+                text-align: center;
+            }
+            
+            .clan-info h1 {
+                font-size: 1.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Loading State -->
+        <div id="loading">Loading Clan Data...</div>
+
+        <!-- Main Content (Hidden until loaded) -->
+        <div id="dashboard" style="display: none;">
+            
+            <!-- Header -->
+            <header class="clan-header">
+                <div class="clan-badge-wrapper">
+                    <!-- Image src set by JS -->
+                    <img id="clanBadge" class="clan-badge" alt="Clan Badge" />
+                </div>
+                <div class="clan-info">
+                    <h1 id="clanName">Clan Name <span id="clanLevel" class="clan-level">0</span></h1>
+                    <p class="clan-desc" id="clanDescription">Clan Description</p>
+                </div>
+            </header>
+
+            <!-- Stats -->
+            <section class="stats-grid">
+                <div class="stat-card">
+                    <span class="stat-value" id="totalPoints">0</span>
+                    <span class="stat-label">Total Points</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="memberCount">0/50</span>
+                    <span class="stat-label">Members</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="warWins">0</span>
+                    <span class="stat-label">War Wins</span>
+                </div>
+                <div class="stat-card">
+                    <span class="stat-value" id="type">Invite Only</span>
+                    <span class="stat-label">Type</span>
+                </div>
+            </section>
+
+            <!-- Navigation Tabs -->
+            <div class="tabs">
+                <button class="tab-btn active" onclick="openTab('members')">Clan Members</button>
+                <button class="tab-btn" onclick="openTab('cwl')">CWL History</button>
+                <button class="tab-btn" onclick="openTab('attacks')">War Performance</button>
+            </div>
+
+            <!-- Tab 1: Member List -->
+            <div id="members" class="tab-content active">
+                <section class="section-container">
+                    <div class="section-header">
+                        <h2>Current Roster</h2>
+                    </div>
+                    <div class="table-container">
+                        <table id="membersTable">
+                            <thead>
+                                <tr>
+                                    <th>Rank</th>
+                                    <th>Name</th>
+                                    <th>Role</th>
+                                    <th>Trophies</th>
+                                    <th>Donations</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows inserted by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tab 2: CWL History -->
+            <div id="cwl" class="tab-content">
+                <section class="section-container">
+                    <div class="section-header">
+                        <h2>Clan War League History</h2>
+                    </div>
+                    <div class="table-container">
+                        <table id="cwlTable">
+                            <thead>
+                                <tr>
+                                    <th>Season</th>
+                                    <th>League</th>
+                                    <th>Rank</th>
+                                    <th>Total Stars</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows inserted by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+            <!-- Tab 3: War Performance (Past & Present) -->
+            <div id="attacks" class="tab-content">
+                <section class="section-container">
+                    <div class="section-header">
+                        <h2>War Attack Log (Current & Past Members)</h2>
+                    </div>
+                    <div class="table-container">
+                        <table id="performanceTable">
+                            <thead>
+                                <tr>
+                                    <th>Player</th>
+                                    <th>Status</th>
+                                    <th>Attacks Tracked</th>
+                                    <th>Avg. Stars</th>
+                                    <th>Avg. Dest %</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                <!-- Rows inserted by JS -->
+                            </tbody>
+                        </table>
+                    </div>
+                </section>
+            </div>
+
+        </div>
+    </div>
+
+    <script>
+        // ==========================================
+        // CONFIGURATION
+        // ==========================================
+        const USE_DEMO_MODE = true; 
+        const DATA_URL = "YOUR_GOOGLE_DRIVE_OR_API_PROXY_URL_HERE"; 
+        const FALLBACK_BADGE = "https://placehold.co/200x200/333/F4C430?text=Clan";
+
+        // ==========================================
+        // DUMMY DATA (Expanded for War Features)
+        // ==========================================
+        const DUMMY_DATA = {
+            "tag": "#2PQ292802",
+            "name": "Dark Elixir",
+            "type": "inviteOnly",
+            "description": "Active war clan. Donations required. English speaking only. Attack twice in war or kick. Minimum 2000 trophies to join.",
+            "clanLevel": 15,
+            "badgeUrls": {
+                "medium": "https://api-assets.clashofclans.com/badges/200/To2_s4_sJ8mCq.png" 
+            },
+            "clanPoints": 48500,
+            "members": 6,
+            "warWins": 142,
+            "memberList": [
+                { "name": "King Arthur", "role": "leader", "expLevel": 235, "trophies": 5400, "donations": 12500 },
+                { "name": "Merlin", "role": "coLeader", "expLevel": 210, "trophies": 5100, "donations": 8200 },
+                { "name": "Lancelot", "role": "coLeader", "expLevel": 195, "trophies": 4950, "donations": 4500 },
+                { "name": "Galahad", "role": "admin", "expLevel": 150, "trophies": 3200, "donations": 500 },
+                { "name": "Percival", "role": "member", "expLevel": 120, "trophies": 2800, "donations": 100 },
+                { "name": "Bors", "role": "member", "expLevel": 110, "trophies": 2600, "donations": 50 }
+            ],
+            // NEW: Historical CWL Data
+            "cwlHistory": [
+                { "season": "January 2024", "league": "Master League II", "rank": 2, "stars": 315 },
+                { "season": "December 2023", "league": "Master League II", "rank": 4, "stars": 280 },
+                { "season": "November 2023", "league": "Master League III", "rank": 1, "stars": 340 },
+                { "season": "October 2023", "league": "Master League III", "rank": 3, "stars": 290 },
+                { "season": "September 2023", "league": "Crystal League I", "rank": 1, "stars": 360 }
+            ],
+            // NEW: Attack Performance (Current & Past)
+            "warPerformance": [
+                { "name": "King Arthur", "isCurrent": true, "attacks": 45, "stars": 128, "destruction": 96.5 },
+                { "name": "Merlin", "isCurrent": true, "attacks": 42, "stars": 110, "destruction": 88.2 },
+                { "name": "Lancelot", "isCurrent": true, "attacks": 40, "stars": 115, "destruction": 92.0 },
+                { "name": "Mordred", "isCurrent": false, "attacks": 20, "stars": 35, "destruction": 65.4 }, // Past Member
+                { "name": "Galahad", "isCurrent": true, "attacks": 30, "stars": 80, "destruction": 85.0 },
+                { "name": "Morgana", "isCurrent": false, "attacks": 15, "stars": 42, "destruction": 98.1 }, // Past Member
+                { "name": "Percival", "isCurrent": true, "attacks": 10, "stars": 25, "destruction": 75.0 },
+                { "name": "OldGuySteve", "isCurrent": false, "attacks": 50, "stars": 100, "destruction": 66.0 } // Past Member
+            ]
+        };
+
+        // ==========================================
+        // APP LOGIC
+        // ==========================================
+
+        document.addEventListener('DOMContentLoaded', init);
+
+        async function init() {
+            const loadingEl = document.getElementById('loading');
+            const dashboardEl = document.getElementById('dashboard');
+            let clanData = null;
+
+            try {
+                if (USE_DEMO_MODE) {
+                    await new Promise(r => setTimeout(r, 500)); // Simulate delay
+                    clanData = DUMMY_DATA;
+                } else {
+                    const response = await fetch(DATA_URL);
+                    if (!response.ok) throw new Error(`HTTP Error: ${response.status}`);
+                    clanData = await response.json();
+                }
+
+                renderHeaderAndStats(clanData);
+                renderMembers(clanData.memberList);
+                renderCWL(clanData.cwlHistory || []);
+                renderPerformance(clanData.warPerformance || []);
+                
+                loadingEl.style.display = 'none';
+                dashboardEl.style.display = 'block';
+
+            } catch (error) {
+                loadingEl.textContent = `Error loading data: ${error.message}`;
+                loadingEl.style.color = '#e74c3c';
+                console.error(error);
+            }
+        }
+
+        // --- Render Functions ---
+
+        function renderHeaderAndStats(data) {
+            document.getElementById('clanName').childNodes[0].nodeValue = data.name + " ";
+            document.getElementById('clanLevel').textContent = data.clanLevel;
+            document.getElementById('clanDescription').textContent = data.description || "No description available.";
+
+            const badgeImg = document.getElementById('clanBadge');
+            badgeImg.src = data.badgeUrls?.medium || FALLBACK_BADGE;
+            badgeImg.onerror = function() {
+                this.onerror = null;
+                this.src = FALLBACK_BADGE;
+            };
+
+            document.getElementById('totalPoints').textContent = data.clanPoints.toLocaleString();
+            document.getElementById('memberCount').textContent = `${data.members}/50`;
+            document.getElementById('warWins').textContent = data.warWins || 0;
+            
+            const typeFormatted = data.type ? data.type.replace(/([A-Z])/g, ' $1').trim() : "Unknown";
+            document.getElementById('type').textContent = typeFormatted.charAt(0).toUpperCase() + typeFormatted.slice(1);
+        }
+
+        function renderMembers(members) {
+            const tbody = document.querySelector('#membersTable tbody');
+            tbody.innerHTML = '';
+            
+            const sortedMembers = members.sort((a, b) => b.trophies - a.trophies);
+
+            sortedMembers.forEach((member, index) => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td class="rank-cell">#${index + 1}</td>
+                    <td><strong>${escapeHtml(member.name)}</strong><br><small style="color:#666">Level ${member.expLevel}</small></td>
+                    <td><span class="badge role-${member.role}">${formatRole(member.role)}</span></td>
+                    <td><span style="color:var(--accent-gold)">🏆</span> ${member.trophies}</td>
+                    <td>${member.donations}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderCWL(history) {
+            const tbody = document.querySelector('#cwlTable tbody');
+            tbody.innerHTML = '';
+
+            if (history.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;">No CWL history available.</td></tr>';
+                return;
+            }
+
+            history.forEach(season => {
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td>${season.season}</td>
+                    <td>${season.league}</td>
+                    <td>#${season.rank}</td>
+                    <td class="stars-val">★ ${season.stars}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        function renderPerformance(stats) {
+            const tbody = document.querySelector('#performanceTable tbody');
+            tbody.innerHTML = '';
+
+            if (stats.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="5" style="text-align:center;">No attack data available.</td></tr>';
+                return;
+            }
+
+            // Sort by Average Stars (Descending)
+            const sortedStats = stats.sort((a, b) => (b.stars / b.attacks) - (a.stars / a.attacks));
+
+            sortedStats.forEach(stat => {
+                const avgStars = (stat.stars / stat.attacks).toFixed(1);
+                const statusClass = stat.isCurrent ? 'status-current' : 'status-past';
+                const statusText = stat.isCurrent ? 'Member' : 'Former';
+
+                const tr = document.createElement('tr');
+                tr.innerHTML = `
+                    <td><strong>${escapeHtml(stat.name)}</strong></td>
+                    <td><span class="badge ${statusClass}">${statusText}</span></td>
+                    <td>${stat.attacks}</td>
+                    <td class="stars-val">★ ${avgStars}</td>
+                    <td>${stat.destruction}%</td>
+                `;
+                tbody.appendChild(tr);
+            });
+        }
+
+        // --- Helpers ---
+
+        function openTab(tabName) {
+            // Hide all tabs
+            document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            // Show selected
+            document.getElementById(tabName).classList.add('active');
+            
+            // Highlight button (Need to find the specific button based on onclick, simple iteration works)
+            const buttons = document.querySelectorAll('.tab-btn');
+            buttons.forEach(btn => {
+                if(btn.getAttribute('onclick').includes(tabName)) {
+                    btn.classList.add('active');
+                }
+            });
+        }
+
+        function formatRole(role) {
+            const roles = { 'leader': 'Leader', 'coLeader': 'Co-Leader', 'admin': 'Elder', 'member': 'Member' };
+            return roles[role] || role;
+        }
+
+        function escapeHtml(text) {
+            if (!text) return '';
+            return text.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;").replace(/'/g, "&#039;");
+        }
+    </script>
+</body>
+</html>
